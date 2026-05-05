@@ -25,7 +25,13 @@ LORA_CONFIG = dict(
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
 )
 
-HAS_GPU = torch.cuda.is_available()
+def _gpu_is_compatible() -> bool:
+    if not torch.cuda.is_available():
+        return False
+    major, _ = torch.cuda.get_device_capability()
+    return major >= 7  # Unsloth/modern PyTorch requires sm_70+
+
+HAS_GPU = _gpu_is_compatible()
 
 
 def load_model_and_tokenizer():
