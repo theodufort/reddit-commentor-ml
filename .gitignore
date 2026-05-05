@@ -1,0 +1,25 @@
+# Virtual environment (created by uv)
+.venv/
+
+# Distribution / Build artifacts
+dist/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# DO NOT IGNORE uv.lock (usually)
+# It should be committed for reproducible builds
+!uv.lock
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# AI
+.claude
+
+# Data
+data/
+/reddit-lora

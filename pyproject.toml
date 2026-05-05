@@ -1,0 +1,21 @@
+[project]
+name = "reddit-commentor-ml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=4.3.0",
+    "pandas>=3.0.2",
+    "psycopg2>=2.9.12",
+    "python-dotenv>=1.2.2",
+    "trl>=0.24.0",
+    "unsloth>=2026.4.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reddit_ml"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
