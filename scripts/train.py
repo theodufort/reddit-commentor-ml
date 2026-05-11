@@ -7,21 +7,23 @@ from pathlib import Path
 def _select_best_gpu() -> None:
     """Pick the GPU with the highest compute capability before CUDA initializes."""
     try:
-        out = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=index,compute_cap", "--format=csv,noheader"],
+        smi = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=index,name,compute_cap", "--format=csv,noheader"],
             text=True,
         )
         gpus = []
-        for line in out.strip().splitlines():
-            idx, cap = line.split(", ")
+        for line in smi.strip().splitlines():
+            parts = [p.strip() for p in line.split(",")]
+            idx, name, cap = int(parts[0]), parts[1], parts[2]
             major, minor = cap.split(".")
-            gpus.append((int(idx), int(major), int(minor)))
+            gpus.append((idx, name, int(major), int(minor)))
+            print(f"  GPU {idx}: {name} (sm_{major}{minor})")
         if gpus:
-            best_idx, major, minor = max(gpus, key=lambda g: (g[1], g[2]))
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(best_idx)
-            print(f"Selected GPU {best_idx} (sm_{major}{minor})")
-    except Exception:
-        pass
+            best = max(gpus, key=lambda g: (g[2], g[3]))
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(best[0])
+            print(f"Selected GPU {best[0]}: {best[1]} (sm_{best[2]}{best[3]})")
+    except Exception as e:
+        print(f"GPU auto-select failed ({e}), using default CUDA device order")
 
 
 _select_best_gpu()
