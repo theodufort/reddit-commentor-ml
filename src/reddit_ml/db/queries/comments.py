@@ -1,12 +1,8 @@
-from __future__ import annotations
-
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
 
 from psycopg2.extensions import cursor
 
-if TYPE_CHECKING:
-    from reddit_ml.data.types import Comment
+from reddit_ml.data.types import Comment
 
 
 def insert_comments(cur: cursor, comments: list[Comment]) -> None:

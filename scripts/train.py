@@ -1,14 +1,38 @@
 import json
 import os
+import subprocess
 from pathlib import Path
 
-import torch
-from datasets import Dataset, DatasetDict
-from dotenv import load_dotenv
-from huggingface_hub import login
-from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from trl import SFTConfig, SFTTrainer
+
+def _select_best_gpu() -> None:
+    """Pick the GPU with the highest compute capability before CUDA initializes."""
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=index,compute_cap", "--format=csv,noheader"],
+            text=True,
+        )
+        gpus = []
+        for line in out.strip().splitlines():
+            idx, cap = line.split(", ")
+            major, minor = cap.split(".")
+            gpus.append((int(idx), int(major), int(minor)))
+        if gpus:
+            best_idx, major, minor = max(gpus, key=lambda g: (g[1], g[2]))
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(best_idx)
+            print(f"Selected GPU {best_idx} (sm_{major}{minor})")
+    except Exception:
+        pass
+
+
+_select_best_gpu()
+
+import torch  # noqa: E402
+from datasets import Dataset, DatasetDict  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from huggingface_hub import login  # noqa: E402
+from peft import LoraConfig, get_peft_model  # noqa: E402
+from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
+from trl import SFTConfig, SFTTrainer  # noqa: E402
 
 load_dotenv()
 login(token=os.environ["HF_TOKEN"])
@@ -30,7 +54,6 @@ def _gpu_mode() -> str:
     if not torch.cuda.is_available():
         return "cpu"
     major, _ = torch.cuda.get_device_capability()
-    # sm_70+ supports bitsandbytes 4-bit quantization and Unsloth
     return "gpu_fast" if major >= 7 else "gpu_legacy"
 
 
@@ -52,7 +75,6 @@ def load_model_and_tokenizer():
             use_gradient_checkpointing="unsloth",
         )
     elif GPU_MODE == "gpu_legacy":
-        # sm_61 (GTX 1070): no bitsandbytes 4-bit, use fp16 LoRA directly on CUDA
         tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(
             HF_MODEL_NAME,
