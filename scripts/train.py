@@ -15,16 +15,40 @@ from trl import SFTConfig, SFTTrainer
 load_dotenv()
 login(token=os.environ["HF_TOKEN"])
 
-HF_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+HF_MODEL_NAME = "openai/gpt-oss-20b"
 OUTPUT_DIR = "./reddit-lora"
 MAX_SEQ_LENGTH = 2048
 
+# Training parameters - adjust these values to experiment with training behavior.
+NUM_TRAIN_EPOCHS = 3
+LEARNING_RATE = 2e-4
+LR_SCHEDULER_TYPE = "cosine"
+WARMUP_RATIO = 0.075
+WEIGHT_DECAY = 0.01
+LOGGING_STEPS = 10
+EVAL_STRATEGY = "steps"
+EVAL_STEPS = 100
+SAVE_STRATEGY = "steps"
+SAVE_STEPS = 100
+SAVE_TOTAL_LIMIT = 3
+LOAD_BEST_MODEL_AT_END = True
+REPORT_TO = "none"
+SEED = 42
+PER_DEVICE_BATCH_SIZE = {"gpu_fast": 2, "gpu_legacy": 2, "cpu": 2}
+GRADIENT_ACCUMULATION_STEPS = {"gpu_fast": 8, "gpu_legacy": 8, "cpu": 8}
+
+LORA_R = 32
+LORA_ALPHA = LORA_R * 2 # LORA_R or LORA_R * 2
+LORA_DROPOUT = 0.0
+LORA_BIAS = "none"
+LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
 LORA_CONFIG = dict(
-    r=32,
-    lora_alpha=64,
-    lora_dropout=0.0,
-    bias="none",
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    r=LORA_R,
+    lora_alpha=LORA_ALPHA,
+    lora_dropout=LORA_DROPOUT,
+    bias=LORA_BIAS,
+    target_modules=LORA_TARGET_MODULES,
 )
 
 
@@ -123,25 +147,32 @@ def main():
             output_dir=OUTPUT_DIR,
             dataset_text_field="text",
             max_length=MAX_SEQ_LENGTH,
-            num_train_epochs=3,
-            per_device_train_batch_size=4 if GPU_MODE == "gpu_fast" else (2 if GPU_MODE == "gpu_legacy" else 1),
-            gradient_accumulation_steps=4 if GPU_MODE == "gpu_fast" else (8 if GPU_MODE == "gpu_legacy" else 16),
-            learning_rate=2e-4,
-            lr_scheduler_type="cosine",
-            warmup_steps=100,
-            weight_decay=0.01,
+            num_train_epochs=NUM_TRAIN_EPOCHS,
+            per_device_train_batch_size=PER_DEVICE_BATCH_SIZE[GPU_MODE],
+            gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS[GPU_MODE],
+            learning_rate=LEARNING_RATE,
+            lr_scheduler_type=LR_SCHEDULER_TYPE,
+            warmup_steps=max(
+                1,
+                int(
+                    (dataset["train"].num_rows * NUM_TRAIN_EPOCHS)
+                    / (PER_DEVICE_BATCH_SIZE[GPU_MODE] * GRADIENT_ACCUMULATION_STEPS[GPU_MODE])
+                    * WARMUP_RATIO
+                ),
+            ),
+            weight_decay=WEIGHT_DECAY,
             bf16=GPU_MODE == "gpu_fast",
             fp16=GPU_MODE == "gpu_legacy",
             use_cpu=GPU_MODE == "cpu",
-            logging_steps=10,
-            eval_strategy="steps",
-            eval_steps=100,
-            save_strategy="steps",
-            save_steps=100,
-            save_total_limit=3,
-            load_best_model_at_end=True,
-            report_to="none",
-            seed=42,
+            logging_steps=LOGGING_STEPS,
+            eval_strategy=EVAL_STRATEGY,
+            eval_steps=EVAL_STEPS,
+            save_strategy=SAVE_STRATEGY,
+            save_steps=SAVE_STEPS,
+            save_total_limit=SAVE_TOTAL_LIMIT,
+            load_best_model_at_end=LOAD_BEST_MODEL_AT_END,
+            report_to=REPORT_TO,
+            seed=SEED,
         ),
     )
 
