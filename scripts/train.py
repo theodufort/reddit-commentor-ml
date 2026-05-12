@@ -20,7 +20,7 @@ MAX_SEQ_LENGTH = 2048
 LORA_CONFIG = dict(
     r=32,
     lora_alpha=64,
-    lora_dropout=0.05,
+    lora_dropout=0.0,
     bias="none",
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
 )
@@ -69,6 +69,8 @@ def load_model_and_tokenizer():
             **LORA_CONFIG,
             use_gradient_checkpointing="unsloth",
         )
+        tokenizer.eos_token = "<|im_end|>"
+        tokenizer.pad_token = tokenizer.eos_token
     elif GPU_MODE == "gpu_legacy":
         tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(
