@@ -20,24 +20,24 @@ OUTPUT_DIR = "./reddit-lora"
 MAX_SEQ_LENGTH = 2048
 
 # Training parameters - adjust these values to experiment with training behavior.
-NUM_TRAIN_EPOCHS = 3
+NUM_TRAIN_EPOCHS = 1
 LEARNING_RATE = 2e-4
 LR_SCHEDULER_TYPE = "cosine"
 WARMUP_RATIO = 0.075
 WEIGHT_DECAY = 0.01
-LOGGING_STEPS = 10
+LOGGING_STEPS = 50
 EVAL_STRATEGY = "steps"
-EVAL_STEPS = 100
+EVAL_STEPS = 500
 SAVE_STRATEGY = "steps"
-SAVE_STEPS = 100
+SAVE_STEPS = 500
 SAVE_TOTAL_LIMIT = 3
 LOAD_BEST_MODEL_AT_END = True
 REPORT_TO = "none"
 SEED = 42
-PER_DEVICE_BATCH_SIZE = {"gpu_fast": 2, "gpu_legacy": 2, "cpu": 2}
-GRADIENT_ACCUMULATION_STEPS = {"gpu_fast": 8, "gpu_legacy": 8, "cpu": 8}
+PER_DEVICE_BATCH_SIZE = {"gpu_fast": 4, "gpu_legacy": 4, "cpu": 2}
+GRADIENT_ACCUMULATION_STEPS = {"gpu_fast": 4, "gpu_legacy": 4, "cpu": 8}
 
-LORA_R = 32
+LORA_R = 16
 LORA_ALPHA = LORA_R * 2 # LORA_R or LORA_R * 2
 LORA_DROPOUT = 0.0
 LORA_BIAS = "none"
@@ -161,8 +161,8 @@ def main():
                 ),
             ),
             weight_decay=WEIGHT_DECAY,
-            bf16=GPU_MODE == "gpu_fast",
-            fp16=GPU_MODE == "gpu_legacy",
+            bf16=False,
+            fp16=True,
             use_cpu=GPU_MODE == "cpu",
             logging_steps=LOGGING_STEPS,
             eval_strategy=EVAL_STRATEGY,
