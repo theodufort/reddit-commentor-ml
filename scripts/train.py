@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from huggingface_hub import login
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from unsloth import FastLanguageModel
+from unsloth.chat_templates import get_chat_template
 from trl import SFTConfig, SFTTrainer
 
 load_dotenv()
@@ -57,8 +59,6 @@ def load_model_and_tokenizer():
         # Restrict Unsloth to the chosen GPU via CUDA_VISIBLE_DEVICES.
         # Must be set before unsloth initialises its CUDA context.
         os.environ["CUDA_VISIBLE_DEVICES"] = str(CUDA_DEVICE)
-        from unsloth import FastLanguageModel
-        from unsloth.chat_templates import get_chat_template
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=f"unsloth/{HF_MODEL_NAME.split('/')[-1]}",
             max_seq_length=MAX_SEQ_LENGTH,
