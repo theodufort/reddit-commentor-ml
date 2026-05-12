@@ -15,7 +15,7 @@ from trl import SFTConfig, SFTTrainer
 load_dotenv()
 login(token=os.environ["HF_TOKEN"])
 
-HF_MODEL_NAME = "unsloth/Llama-3.1-8B-Instruct-GGUF"
+HF_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 OUTPUT_DIR = "./reddit-lora"
 MAX_SEQ_LENGTH = 2048
 
