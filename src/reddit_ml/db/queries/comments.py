@@ -39,7 +39,7 @@ def get_comments(cur: cursor, subreddit: str, min_body_len: int = 50, batch_size
         FROM public.reddit_comments AS rc
         INNER JOIN public.reddit_posts AS rp ON rc.post_id = rp.id
         WHERE lower(rp.subreddit) = lower(%(subreddit)s)
-          AND CHAR_LENGTH(rc.body) > %(min_body_len)s and rc.body not like '%http%' and rc.body not like '%vote%'
+          AND CHAR_LENGTH(rc.body) > %(min_body_len)s and rc.body not like '%%http%%' and rc.body not like '%%vote%%'
         LIMIT %(batch_size)s
         """,
         {"subreddit": subreddit, "min_body_len": min_body_len, "batch_size": batch_size},
