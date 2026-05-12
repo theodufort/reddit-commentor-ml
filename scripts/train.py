@@ -15,7 +15,7 @@ from trl import SFTConfig, SFTTrainer
 load_dotenv()
 login(token=os.environ["HF_TOKEN"])
 
-HF_MODEL_NAME = "openai/gpt-oss-20b"
+HF_MODEL_NAME = "unsloth/Llama-3.1-8B-Instruct-GGUF"
 OUTPUT_DIR = "./reddit-lora"
 MAX_SEQ_LENGTH = 2048
 
