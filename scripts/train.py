@@ -17,7 +17,8 @@ login(token=os.environ["HF_TOKEN"])
 
 HF_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 OUTPUT_DIR = "./reddit-lora"
-MAX_SEQ_LENGTH = 2048
+
+MAX_SEQ_LENGTH = 1024
 
 # Training parameters - adjust these values to experiment with training behavior.
 NUM_TRAIN_EPOCHS = 1
