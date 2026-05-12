@@ -1,40 +1,14 @@
 import json
 import os
-import subprocess
 from pathlib import Path
 
-
-def _select_best_gpu() -> None:
-    """Pick the GPU with the highest compute capability before CUDA initializes."""
-    try:
-        smi = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=index,name,compute_cap", "--format=csv,noheader"],
-            text=True,
-        )
-        gpus = []
-        for line in smi.strip().splitlines():
-            parts = [p.strip() for p in line.split(",")]
-            idx, name, cap = int(parts[0]), parts[1], parts[2]
-            major, minor = cap.split(".")
-            gpus.append((idx, name, int(major), int(minor)))
-            print(f"  GPU {idx}: {name} (sm_{major}{minor})")
-        if gpus:
-            best = max(gpus, key=lambda g: (g[2], g[3]))
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(best[0])
-            print(f"Selected GPU {best[0]}: {best[1]} (sm_{best[2]}{best[3]})")
-    except Exception as e:
-        print(f"GPU auto-select failed ({e}), using default CUDA device order")
-
-
-_select_best_gpu()
-
-import torch  # noqa: E402
-from datasets import Dataset, DatasetDict  # noqa: E402
-from dotenv import load_dotenv  # noqa: E402
-from huggingface_hub import login  # noqa: E402
-from peft import LoraConfig, get_peft_model  # noqa: E402
-from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
-from trl import SFTConfig, SFTTrainer  # noqa: E402
+import torch
+from datasets import Dataset, DatasetDict
+from dotenv import load_dotenv
+from huggingface_hub import login
+from peft import LoraConfig, get_peft_model
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from trl import SFTConfig, SFTTrainer
 
 load_dotenv()
 login(token=os.environ["HF_TOKEN"])
@@ -52,18 +26,37 @@ LORA_CONFIG = dict(
 )
 
 
+def _pick_best_cuda_device() -> int | None:
+    """Return the CUDA device index with the highest compute capability, or None."""
+    n = torch.cuda.device_count()
+    if n == 0:
+        return None
+    best = max(range(n), key=lambda i: torch.cuda.get_device_capability(i))
+    name = torch.cuda.get_device_name(best)
+    major, minor = torch.cuda.get_device_capability(best)
+    print(f"Selected GPU {best}: {name} (sm_{major}{minor})")
+    return best
+
+
+CUDA_DEVICE: int | None = _pick_best_cuda_device() if torch.cuda.is_available() else None
+
+
 def _gpu_mode() -> str:
-    if not torch.cuda.is_available():
+    if CUDA_DEVICE is None:
         return "cpu"
-    major, _ = torch.cuda.get_device_capability()
+    major, _ = torch.cuda.get_device_capability(CUDA_DEVICE)
     return "gpu_fast" if major >= 7 else "gpu_legacy"
 
 
 GPU_MODE = _gpu_mode()
+DEVICE_MAP = {"": CUDA_DEVICE} if CUDA_DEVICE is not None else {"": "cpu"}
 
 
 def load_model_and_tokenizer():
     if GPU_MODE == "gpu_fast":
+        # Restrict Unsloth to the chosen GPU via CUDA_VISIBLE_DEVICES.
+        # Must be set before unsloth initialises its CUDA context.
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(CUDA_DEVICE)
         from unsloth import FastLanguageModel
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=f"unsloth/{HF_MODEL_NAME.split('/')[-1]}",
@@ -80,15 +73,19 @@ def load_model_and_tokenizer():
         tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(
             HF_MODEL_NAME,
-            torch_dtype=torch.float16,
-            device_map="cuda",
+            dtype=torch.float16,
+            device_map=DEVICE_MAP,
         )
         model = get_peft_model(model, LoraConfig(task_type="CAUSAL_LM", **LORA_CONFIG))
         model.enable_input_require_grads()
         model.print_trainable_parameters()
     else:
         tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
-        model = AutoModelForCausalLM.from_pretrained(HF_MODEL_NAME, torch_dtype=torch.float32)
+        model = AutoModelForCausalLM.from_pretrained(
+            HF_MODEL_NAME,
+            torch_dtype=torch.float32,
+            device_map=DEVICE_MAP,
+        )
         model = get_peft_model(model, LoraConfig(task_type="CAUSAL_LM", **LORA_CONFIG))
         model.print_trainable_parameters()
 
