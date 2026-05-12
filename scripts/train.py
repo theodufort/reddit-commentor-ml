@@ -58,6 +58,7 @@ def load_model_and_tokenizer():
         # Must be set before unsloth initialises its CUDA context.
         os.environ["CUDA_VISIBLE_DEVICES"] = str(CUDA_DEVICE)
         from unsloth import FastLanguageModel
+        from unsloth.chat_templates import get_chat_template
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=f"unsloth/{HF_MODEL_NAME.split('/')[-1]}",
             max_seq_length=MAX_SEQ_LENGTH,
@@ -69,8 +70,7 @@ def load_model_and_tokenizer():
             **LORA_CONFIG,
             use_gradient_checkpointing="unsloth",
         )
-        tokenizer.eos_token = "<|im_end|>"
-        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer = get_chat_template(tokenizer, chat_template="qwen-2.5")
     elif GPU_MODE == "gpu_legacy":
         tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(
