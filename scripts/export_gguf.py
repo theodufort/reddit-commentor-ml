@@ -13,7 +13,7 @@ def main():
         load_in_4bit=True,
     )
 
-    model.save_pretrained_gguf(OUTPUT_PATH, tokenizer, quantization_method=QUANTIZATION, llama_cpp_path="/home/theod/reddit-commentor-ml/llama.cpp")
+    model.save_pretrained_merged("merged_model", tokenizer, save_method = "merged_16bit",)
     print(f"GGUF exported to {OUTPUT_PATH}/")
 
 
