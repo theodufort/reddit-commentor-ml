@@ -10,6 +10,6 @@ TEMPLATE """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 PARAMETER stop "<|eot_id|>"
 PARAMETER stop "<|end_of_text|>"
-PARAMETER num_gpu 99 #empeche partial offloading
+PARAMETER num_gpu 99
 
 SYSTEM "You are a helpful Reddit commenter."
